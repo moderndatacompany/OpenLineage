@@ -31,6 +31,8 @@ https://openlineage.github.io/ It allows extensions to the spec using `Custom Fa
   unique ID relative to its job definition. A run ID **must** be a
   [UUID](https://datatracker.ietf.org/doc/html/rfc4122).
 
+- **Query**: An observation of a SELECT query execution (read-only operation) against datasets. A query is identified by a unique queryId within a namespace. Unlike Runs which model transformations, Queries model data access patterns for read-only operations.
+
 - **Facet**: A piece of metadata attached to one of the entities defined above.
 
 Example: Here is an example of a simple start run event not adding any facet information:
@@ -63,6 +65,30 @@ Example: Here is an example of a simple start run event not adding any facet inf
 }
 ```
 
+Example: Here is an example of a QueryEvent:
+
+```
+{
+  "eventTime": "2024-01-15T10:30:00.000Z",
+  "query": {
+    "namespace": "analytics-queries",
+    "queryId": "550e8400-e29b-41d4-a716-446655440000",
+    "sql": "SELECT u.id, u.name FROM users u WHERE u.active = true LIMIT 100",
+    "startedAt": "2024-01-15T10:29:58.750Z",
+    "endedAt": "2024-01-15T10:30:00.000Z",
+    "dialect": "postgresql"
+  },
+  "inputs": [
+    {
+      "namespace": "postgres://127.0.0.1:5433",
+      "name": "warehouse.b2b_saas.users"
+    }
+  ],
+  "producer": "https://github.com/OpenLineage/OpenLineage/blob/v1-0-0/client",
+  "schemaURL": "https://openlineage.io/spec/2-0-2/OpenLineage.json#/$defs/QueryEvent"
+}
+```
+
 ### Lifecycle
 
 The OpenLineage API defines events to capture the lifecycle of a _Run_ for a given _Job_. When a _job_ is being _run_,
@@ -92,6 +118,7 @@ Facets are pieces of metadata that can be attached to the core entities:
 
 - Run
 - Job
+- Query
 - Dataset (Inputs or Outputs)
 
 A facet is an atomic piece of metadata identified by its name. This means that emitting a new facet with the same name
@@ -145,6 +172,10 @@ An example of a valid name is `BigQueryStatisticsJobFacet` and key is `bigQuery_
 - **sql**: Capture the SQL query if the job is a SQL query.
 
 - **ownership**: Captures the owners of the job
+
+#### Query Facets
+
+- **queryMetadata**: Captures additional metadata about the query execution (e.g., cost, query hash, execution plan)
 
 #### Dataset Facets
 

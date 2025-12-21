@@ -106,6 +106,28 @@
         }
       ]
     },
+    "QueryEvent": {
+      "allOf": [
+        { "$ref": "#/$defs/BaseEvent" },
+        {
+          "type": "object",
+          "properties": {
+            "query": {
+              "$ref": "#/$defs/Query"
+            },
+            "inputs": {
+              "description": "The set of **input** datasets read by the query",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/InputDataset"
+              }
+            }
+          },
+          "required": ["query"],
+          "not": { "required": ["run", "job", "dataset"] }
+        }
+      ]
+    },
     "Run": {
       "type": "object",
       "properties": {
@@ -173,6 +195,92 @@
           }
         }
       ]
+    },
+    "Query": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "description": "Organizational namespace for grouping queries",
+          "type": "string",
+          "example": "production-queries"
+        },
+        "queryId": {
+          "description": "Unique identifier for this query execution. Used to generate deterministic UUID for idempotency",
+          "type": "string",
+          "example": "550e8400-e29b-41d4-a716-446655440000"
+        },
+        "sql": {
+          "description": "The SQL query text (must be a SELECT query, read-only operations only)",
+          "type": "string",
+          "example": "SELECT u.id, u.name FROM users u WHERE u.active = true LIMIT 100"
+        },
+        "startedAt": {
+          "description": "Timestamp when query execution started",
+          "type": "string",
+          "format": "date-time",
+          "example": "2024-01-15T10:29:58.750Z"
+        },
+        "endedAt": {
+          "description": "Timestamp when query execution ended",
+          "type": "string",
+          "format": "date-time",
+          "example": "2024-01-15T10:30:00.000Z"
+        },
+        "dialect": {
+          "description": "SQL dialect identifier",
+          "type": "string",
+          "example": "postgresql"
+        },
+        "executionTimeMs": {
+          "description": "Query execution time in milliseconds",
+          "type": "integer",
+          "minimum": 0,
+          "example": 1250
+        },
+        "rowsReturned": {
+          "description": "Number of rows returned by the SELECT query",
+          "type": "integer",
+          "minimum": 0,
+          "example": 100
+        },
+        "bytesScanned": {
+          "description": "Bytes scanned/processed during query execution",
+          "type": "integer",
+          "minimum": 0,
+          "example": 1048576
+        },
+        "user": {
+          "description": "User who executed the query",
+          "type": "string",
+          "example": "analyst@company.com"
+        },
+        "application": {
+          "description": "Application/system that executed the query",
+          "type": "string",
+          "example": "snowflake-query-history"
+        },
+        "warehouse": {
+          "description": "Compute warehouse/resource used",
+          "type": "string",
+          "example": "COMPUTE_WH"
+        },
+        "facets": {
+          "description": "The query facets.",
+          "type": "object",
+          "anyOf": [
+            {
+              "type": "object",
+              "additionalProperties": { "$ref": "#/$defs/QueryFacet" }
+            }
+          ]
+        }
+      },
+      "required": ["namespace", "queryId", "sql"]
+    },
+    "QueryFacet": {
+      "description": "A Query Facet",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/BaseFacet" }]
     },
     "InputDataset": {
       "description": "An input dataset",
@@ -300,5 +408,5 @@
       "required": ["_producer", "_schemaURL"]
     }
   },
-  "oneOf": [{ "$ref": "#/$defs/RunEvent" }, { "$ref": "#/$defs/DatasetEvent" }, { "$ref": "#/$defs/JobEvent" }]
+  "oneOf": [{ "$ref": "#/$defs/RunEvent" }, { "$ref": "#/$defs/DatasetEvent" }, { "$ref": "#/$defs/JobEvent" }, { "$ref": "#/$defs/QueryEvent" }]
 }
