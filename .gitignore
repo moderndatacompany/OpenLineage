@@ -7,6 +7,14 @@
 .settings
 .local
 
+# Eclipse/Gradle build output
+**/bin/
+
+# GPG keys and secrets
+key
+*.key
+*.gpg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
