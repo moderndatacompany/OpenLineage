@@ -10,6 +10,7 @@ This is the DataOS fork of [OpenLineage](https://github.com/OpenLineage/OpenLine
 |----------|-------------|
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Local development, building, testing |
 | [RELEASING.md](./RELEASING.md) | Publishing to Maven Central & PyPI |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Adding custom facets and contributing |
 | [FORK-MAINTENANCE.md](./FORK-MAINTENANCE.md) | Syncing with upstream OpenLineage |
 
 ## What's Different in This Fork?

@@ -35,6 +35,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(BOLD)JAVA CLIENT COMMANDS:$(NC)"
 	@echo "    $(GREEN)java-info$(NC)             Show version and artifact coordinates"
+	@echo "    $(GREEN)java-generate$(NC)         Generate Java code from JSON schemas"
 	@echo "    $(GREEN)java-build$(NC)            Build and test Java client JAR (requires Docker)"
 	@echo "    $(GREEN)java-build-quick$(NC)      Build Java client, skip Docker-dependent tests"
 	@echo "    $(GREEN)java-publish-local$(NC)    Publish to local Maven (~/.m2/repository)"
@@ -43,6 +44,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "$(BOLD)PYTHON CLIENT COMMANDS:$(NC)"
 	@echo "    $(GREEN)python-info$(NC)           Show version and package info"
+	@echo "    $(GREEN)python-generate$(NC)       Generate Python code from JSON schemas"
 	@echo "    $(GREEN)python-build$(NC)          Build Python wheel and sdist"
 	@echo "    $(GREEN)python-test$(NC)           Run Python client tests"
 	@echo "    $(GREEN)python-publish-local$(NC)  Install locally for testing"
@@ -63,17 +65,32 @@ help: ## Show this help message
 	@echo "    $(GREEN)lint-types$(NC)            Run mypy type checking"
 	@echo "    $(GREEN)fix-format$(NC)            Auto-fix formatting issues"
 	@echo ""
+	@echo "$(BOLD)CODE GENERATION:$(NC)"
+	@echo "    $(GREEN)python-generate$(NC)       Generate Python code from spec/facets/ JSON schemas"
+	@echo "    $(GREEN)java-generate$(NC)         Generate Java code from spec/facets/ JSON schemas"
+	@echo "    $(GREEN)generate-setup$(NC)        Install generator dependencies (one-time)"
+	@echo ""
 	@echo "$(BOLD)UTILITY:$(NC)"
 	@echo "    $(GREEN)status$(NC)                Show build status of all components"
 	@echo "    $(GREEN)clean$(NC)                 Clean all build artifacts and caches"
 	@echo "    $(GREEN)ci-test$(NC)               Run full CI simulation locally"
 	@echo ""
 	@echo "$(BOLD)EXAMPLES:$(NC)"
-	@echo "    $(DIM)# Build Java client and run tests$(NC)"
-	@echo "    make java-build"
+	@echo "    $(DIM)# Add a new facet (full workflow):$(NC)"
+	@echo "    1. Create JSON schema:  spec/facets/MyCustomDatasetFacet.json"
+	@echo "       $(YELLOW)Important: Use $$id = https://github.com/moderndatacompany/OpenLineage/spec/facets/...$(NC)"
+	@echo "    2. Generate Python:     make python-generate"
+	@echo "    3. Generate Java:       make java-generate"
+	@echo "    4. Build Python wheel:  make python-build"
+	@echo "    5. Build Java JAR:      make java-build-quick"
+	@echo "    6. Test Python import:  python -c \"from openlineage.client.facet_v2 import *\""
+	@echo "    7. Test Java:           make java-publish-local"
+	@echo ""
+	@echo "    $(DIM)# Quick verify after adding facet$(NC)"
+	@echo "    grep -n 'MyFacetName' client/java/src/main/java/io/openlineage/client/OpenLineage.java"
 	@echo ""
 	@echo "    $(DIM)# Publish to local Maven for testing in other projects$(NC)"
-	@echo "    make java-publish-local"
+	@echo "    make java-publish-local
 	@echo ""
 	@echo "    $(DIM)# Then use in your project:$(NC)"
 	@echo "    $(DIM)# Maven:  $(JAVA_GROUP_ID):$(JAVA_ARTIFACT_ID):<version>$(NC)"
@@ -232,6 +249,18 @@ java-publish: ## Publish Java client to Maven Central (requires credentials)
 	cd client/java && ./gradlew --console=plain :publishToSonatype :closeAndReleaseSonatypeStagingRepository
 	@echo "$(GREEN)✅ Published to Maven Central!$(NC)"
 
+java-generate: ## Generate Java code from JSON schemas in spec/facets/
+	@echo "$(BLUE)Generating Java code from spec...$(NC)"
+	@echo "$(DIM)Note: Using --rerun-tasks --no-build-cache to ensure fresh generation$(NC)"
+	cd client/java && ./gradlew --console=plain --rerun-tasks --no-build-cache generateCode
+	@echo "$(GREEN)✅ Java code generated!$(NC)"
+	@echo "Generated files: client/java/src/main/java/io/openlineage/client/OpenLineage.java"
+	@echo ""
+	@echo "$(BOLD)Next steps:$(NC)"
+	@echo "  1. Verify your facet: grep -n 'YourFacetName' client/java/src/main/java/io/openlineage/client/OpenLineage.java"
+	@echo "  2. Build the JAR: make java-build-quick"
+	@echo "  3. Test locally: make java-publish-local"
+
 # =============================================================================
 # Python Client Commands
 # =============================================================================
@@ -254,6 +283,22 @@ python-info: ## Show Python client version and package info
 	echo "  $(BOLD)With extras:$(NC)"; \
 	echo "    pip install \"$$NAME[kafka]==$$VERSION\""; \
 	echo ""
+
+python-generate: ## Generate Python code from JSON schemas in spec/facets/
+	@echo "$(BLUE)Generating Python code from spec...$(NC)"
+	@if ! command -v ruff &> /dev/null; then \
+		echo "$(YELLOW)Installing ruff (required for code formatting)...$(NC)"; \
+		pip install ruff; \
+	fi
+	@echo "Running generator..."
+	cd client/python/src/openlineage/client/generator && python generate.py
+	@echo "$(GREEN)✅ Python code generated!$(NC)"
+	@echo "Generated files: client/python/src/openlineage/client/generated/"
+	@echo ""
+	@echo "$(BOLD)Next steps:$(NC)"
+	@echo "  1. Review generated files in client/python/src/openlineage/client/generated/"
+	@echo "  2. Build the wheel: make python-build"
+	@echo "  3. Test the import: python -c \"from openlineage.client.facet_v2 import *\""
 
 python-build: ## Build Python wheel and source distribution
 	@echo "$(BLUE)Building Python client...$(NC)"
@@ -289,6 +334,19 @@ python-publish: ## Publish Python client to PyPI (requires credentials)
 	twine upload client/python/dist/*
 	@echo "$(GREEN)✅ Published to PyPI!$(NC)"
 	@echo "Install with: pip install $(PYTHON_PACKAGE_NAME)"
+
+# =============================================================================
+# Code Generation
+# =============================================================================
+
+generate-setup: ## Install Python generator dependencies (one-time setup)
+	@echo "$(BLUE)Installing generator dependencies...$(NC)"
+	pip install -e "client/python[generator]"
+	@echo "$(GREEN)✅ Generator dependencies installed!$(NC)"
+	@echo ""
+	@echo "$(BOLD)You can now run:$(NC)"
+	@echo "  make python-generate   # Generate Python code from JSON schemas"
+	@echo "  make java-generate     # Generate Java code from JSON schemas"
 
 # =============================================================================
 # Development Shortcuts
